@@ -1,0 +1,64 @@
+[package]
+name = "font-shape"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+authors = ["Wyatt Au <wyatt_au@protonmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/WyattAu/font-shape"
+homepage = "https://github.com/WyattAu/font-shape"
+documentation = "https://docs.rs/font-shape"
+description = "Glyph rasterization and text measurement — scanline fill, stroke expansion, advance/kerning layout, bidirectional reordering"
+readme = "README.md"
+keywords = ["font", "rasterizer", "typography", "text-layout", "no-std"]
+categories = ["graphics", "no-std", "text-processing"]
+exclude = [".github/", "fuzz/", "supply-chain/"]
+
+# Layer model: docs/layers.md in WyattAu/engineering-standards.
+# L2 — domain: the rasterization and measurement half of the font toolchain.
+# Its only estate-internal edge points down to font-model (L1), which in turn
+# sits on font-parse (L0), so the chain is legal.
+[package.metadata.layers]
+tier = "L2"
+
+# font-model (L1) supplies the typed outline/metric model this crate draws and
+# measures; libm provides the no_std transcendentals (sqrt/sin/cos) the affine
+# transform and stroking need, with no new supply-chain surface beyond what
+# dsp-spectral already carries. No image or rasterizer dependency: the
+# scanline filler is the point of the crate.
+[dependencies]
+font-model = { version = "0.1", default-features = false }
+libm = "0.2"
+thiserror = { version = "2", default-features = false }
+
+[dev-dependencies]
+proptest = "1"
+
+[features]
+default = ["std"]
+# std: the library is no_std + alloc regardless; this enables the `std`
+# surface (the preview example's file I/O). `--no-default-features` builds the
+# bare no_std library.
+std = []
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "deny"
+
+# Rasterization discipline (mirrors font-model / font-parse): a path can carry
+# hostile geometry — NaN coordinates, a singular transform, a million-point
+# subpath — and the rasterizer must still return a mask rather than panic. Every
+# access is bounds-checked and every failure is a typed ShapeError. The lib
+# target holds these deny-level lints; the test, example, and fuzz targets lift
+# them at the file level with justification.
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+undocumented_unsafe_blocks = "deny"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true

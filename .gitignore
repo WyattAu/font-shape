@@ -1,0 +1,5 @@
+/target
+/fuzz/artifacts
+/fuzz/coverage
+/fuzz/target
+Cargo.lock.bak
