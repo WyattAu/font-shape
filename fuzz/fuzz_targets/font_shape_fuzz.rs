@@ -138,6 +138,29 @@ fn style_from(data: &[u8], width: f32) -> StrokeStyle {
         .with_miter_limit(1.0 + f32::from(data.get(3).copied().unwrap_or(0) % 8))
 }
 
+/// True when every point of every command is finite.
+///
+/// A path holding a NaN has no meaningful area or extremum: `flatten` samples
+/// a curve at its segment parameters, so which samples come out finite depends
+/// on the subpath's direction, and two directions can therefore disagree about
+/// the same curve. That is a property of the flattener, not a defect in the
+/// reversal, so the geometric invariants apply only to finite paths.
+fn path_is_finite(path: &font_shape::Path2D) -> bool {
+    path.commands().iter().all(|c| {
+        let pts: [(f32, f32); 4] = match *c {
+            font_shape::PathCommand::MoveTo(x, y) | font_shape::PathCommand::LineTo(x, y) => {
+                [(x, y); 4]
+            }
+            font_shape::PathCommand::QuadTo(cx, cy, x, y) => [(cx, cy), (x, y), (0.0, 0.0), (0.0, 0.0)],
+            font_shape::PathCommand::CubicTo(c1x, c1y, c2x, c2y, x, y) => {
+                [(c1x, c1y), (c2x, c2y), (x, y), (0.0, 0.0)]
+            }
+            font_shape::PathCommand::Close => [(0.0, 0.0); 4],
+        };
+        pts.iter().all(|p| p.0.is_finite() && p.1.is_finite())
+    })
+}
+
 /// Two boxes "match" if they agree to within a relative epsilon.
 ///
 /// A box from a path holding NaN coordinates has no true extrema to preserve,
@@ -303,9 +326,18 @@ fuzz_target!(|data: &[u8]| {
             }
         }
     }
-    let a = path.polygon_area();
-    let b = reversed.polygon_area();
-    assert!((a - b).abs() < 1e-2 * a.max(1.0), "reversed area {b} vs {a}");
+    // And the area survives. This only means anything for a path with no
+    // non-finite coordinate: `flatten` samples a curve at its segment
+    // parameters, so a NaN endpoint poisons a *different* set of samples
+    // depending on which end the subpath starts from, and the area of such a
+    // path is not a property of its geometry. The `has_geometry` branch above
+    // already restricts the box check to finite geometry; this is the same
+    // restriction for the area.
+    if path_is_finite(&path) {
+        let a = path.polygon_area();
+        let b = reversed.polygon_area();
+        assert!((a - b).abs() < 1e-2 * a.max(1.0), "reversed area {b} vs {a}");
+    }
 
     // ---- Filling: coverage is bounded, and exact for straight edges. ----
     let size = 8 + u32::from(data.get(4).copied().unwrap_or(0)) % 32;

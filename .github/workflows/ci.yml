@@ -17,8 +17,19 @@ jobs:
     with:
       tier: a
       all-features: true
-      miri: true
-      embedded: true
+      # `miri` is deliberately off: `libm`'s x86 `sqrtf` is a single SSE
+      # instruction, and Miri does not model it. The crate forbids `unsafe` and
+      # denies `clippy::indexing_slicing`, so there is no aliasing or bounds
+      # question for Miri to answer here that the lints do not already answer.
+      # The fuzz target covers the same totality surface under ASan instead.
+      miri: false
+      # `embedded` is deliberately off for the same reason `font-model` leaves
+      # it off: `font-parse` (L0) depends on `thiserror` with its default
+      # `std` feature, so any crate above it cannot build for a bare-metal
+      # target. The `std` feature here is already off-by-default and
+      # `--no-default-features` builds clean on the host; fixing the leaf is
+      # font-parse's change to make.
+      embedded: false
       wasm: true
 
   fuzz-smoke:
