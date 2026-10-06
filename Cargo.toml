@@ -33,6 +33,9 @@ thiserror = { version = "2", default-features = false }
 
 [dev-dependencies]
 proptest = "1"
+# The property tests generate the sine and cosine of a jittered angle; the
+# range is small enough that a short Taylor series is exact to float epsilon,
+# and it keeps the test target's dependency list to what it actually uses.
 
 [features]
 default = ["std"]

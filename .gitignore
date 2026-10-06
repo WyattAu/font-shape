@@ -3,3 +3,7 @@
 /fuzz/coverage
 /fuzz/target
 Cargo.lock.bak
+
+# The example writes previews into the working directory.
+*.pgm
+*.png
