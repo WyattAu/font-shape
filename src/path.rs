@@ -342,6 +342,14 @@ impl Path2D {
     }
 
     /// The polygonal area of the flattened path, for a coverage sanity check.
+    ///
+    /// This is the area of the *flattened polygon*, so it is within the
+    /// flattening tolerance of the true curve area, and it is the number
+    /// [`fill_path`](crate::fill_path)'s coverage should sum to.
+    ///
+    /// An edge with a non-finite endpoint is skipped rather than summed, so
+    /// hostile geometry gives a finite answer — the area of whatever part of
+    /// the path is still well-defined — instead of NaN.
     #[must_use]
     pub fn polygon_area(&self) -> f32 {
         self.flatten(0.0)
@@ -350,7 +358,11 @@ impl Path2D {
                 let mut a = 0.0f32;
                 for (i, p) in poly.iter().enumerate() {
                     let q = poly.get(i + 1).copied().unwrap_or(*p);
-                    a += p.0 * q.1 - q.0 * p.1;
+                    let finite =
+                        p.0.is_finite() && p.1.is_finite() && q.0.is_finite() && q.1.is_finite();
+                    if finite {
+                        a += p.0 * q.1 - q.0 * p.1;
+                    }
                 }
                 a.abs() * 0.5
             })

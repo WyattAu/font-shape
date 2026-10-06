@@ -498,12 +498,20 @@ pub(crate) fn reverse_commands(commands: &[PathCommand]) -> Vec<PathCommand> {
         subs.push((sp.0, sp.1, false));
     }
     for (points, segs, closed) in subs {
-        if segs.is_empty() {
-            continue;
-        }
         let Some(first) = points.first().copied() else {
             continue;
         };
+        if segs.is_empty() {
+            // A subpath with no segments — a lone `MoveTo`, which is a point
+            // with no extent. It has no direction to flip, but it is still a
+            // point the path's bounding box covers, so dropping it would make
+            // reversal change the geometry.
+            out.push(PathCommand::MoveTo(first.0, first.1));
+            if closed {
+                out.push(PathCommand::Close);
+            }
+            continue;
+        }
         let begin = segs.last().map_or(first, |s| s.to);
         out.push(PathCommand::MoveTo(begin.0, begin.1));
         for (i, s) in segs.iter().enumerate().rev() {

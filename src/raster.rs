@@ -345,8 +345,11 @@ fn add_band(out: &mut [u8], span: &(Edge, Edge), ya: f32, yb: f32, y: usize, wid
         let col = cx as f32;
         let area = span_column_area(left, right, ya, yb, col);
         if area > 0.0 {
-            // `libm` rather than `f32::round`: the crate is `no_std`, and
-            // `round`/`clamp` are `std` methods on floats.
+            // `libm::roundf` rather than `f32::round`: `round` and `clamp` are
+            // `std` methods on floats and this crate is `no_std`. So the
+            // saturating `max`/`min` stands in for `clamp`, which would also
+            // panic on a NaN bound — and a NaN area can reach here.
+            #[allow(clippy::manual_clamp)]
             let cov = libm::roundf(area * 255.0).max(0.0).min(255.0) as u32;
             let v = cov.min(255) as u8;
             let idx = y.saturating_mul(width).saturating_add(cx as usize);
