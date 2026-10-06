@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    uses: WyattAu/engineering-standards/.github/workflows/rust-kit.yml@e23c50cf289f55bbb91001c91bbac7de018c11c3 # main @ 2026-10-03
+    with:
+      tier: a
+      all-features: true
+      miri: true
+      embedded: true
+      wasm: true
+
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: install cargo-fuzz
+        run: cargo install --locked cargo-fuzz
+      - name: fuzz smoke — font_shape_fuzz (30 s, fleet §4)
+        run: cargo fuzz run font_shape_fuzz -- -max_total_time=30
+
+  example-smoke:
+    # The example is documentation that runs; prove it still does, both with
+    # its built-in demo font and against a real TrueType file.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: render example (built-in demo font)
+        run: cargo run --example render
+      - name: render example (the minimal.ttf fixture, grid-fitted)
+        run: cargo run --example render -- --font tests/fixtures/minimal.ttf --grid-fit --size 48
+      - name: the written previews are non-empty and well-formed
+        run: |
+          cargo run --example render -- --out preview.pgm --png preview.png
+          test -s preview.pgm
+          test -s preview.png
+          head -c 2 preview.pgm | grep -q P5
+          head -c 8 preview.png | od -An -tx1 | tr -d ' \n' | grep -q '^89504e470d0a1a0a$'
