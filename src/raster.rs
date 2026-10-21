@@ -339,7 +339,14 @@ fn add_band(out: &mut [u8], span: &(Edge, Edge), ya: f32, yb: f32, y: usize, wid
     let min_x = lx0.min(lx1).min(rx0.min(rx1));
     let max_x = lx0.max(lx1).max(rx0.max(rx1));
     let first = floor_to_i32(min_x);
-    let last = ceil_to_i32(max_x);
+    // Clamp the walk to the mask itself. Hostile-extent geometry (±1e30 spans
+    // are legal input — nothing bounds a caller's coordinates) saturates
+    // `last` at `i32::MAX`, and an unclamped walk is a billion-iteration
+    // silent hang — found by font-conformance case `huge_extent_polygon`:
+    // fill never returned. The write below is already bounded by `get_mut`;
+    // the walk must be bounded too. (`width` ≤ MAX_MASK_ELEMENTS by the
+    // `fill_path` entry check, far under `i32::MAX`.)
+    let last = ceil_to_i32(max_x).min(width as i32);
     let mut cx = first.max(0);
     while cx < last {
         let col = cx as f32;
