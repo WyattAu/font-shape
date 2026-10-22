@@ -1,16 +1,16 @@
 # font-shape
 
-Glyph rasterization and text measurement — scanline fill, stroke expansion,
+Glyph rasterization and text measurement: scanline fill, stroke expansion,
 advance/kerning layout, and bidirectional reordering.
 
-**Layer:** L2 — domain · **Estate deps:** `font-model` (L1) · **Runtime deps:**
+**Layer:** L2: domain · **Estate deps:** `font-model` (L1) · **Runtime deps:**
 `font-model`, `libm`, `thiserror` · `#![no_std]` + `alloc`.
 
 ## What this layer is
 
 [`font-model`] owns a typeface: its outlines in font units, its `cmap`, its
 metrics. That is the right shape for *holding* a font. It is the wrong shape
-for *using* one — a screen needs pixels, and a text layout engine needs to know
+for *using* one: a screen needs pixels, and a text layout engine needs to know
 where each glyph goes and how wide the line is.
 
 `font-shape` is that half. It has **no rasterizer dependency at all**: the
@@ -29,9 +29,9 @@ scanline filler is the crate.
 
 | Area | Entry points |
 |---|---|
-| transforms | [`Affine2D`] — 2×3 affine, application-order composition, inverse |
+| transforms | [`Affine2D`]: 2×3 affine, application-order composition, inverse |
 | paths | [`Path2D`], [`PathBuilder`] with a transform stack; curves stay curves |
-| filling | [`fill_path`] — exact analytic coverage, [`FillRule`] |
+| filling | [`fill_path`]: exact analytic coverage, [`FillRule`] |
 | stroking | [`stroke_path`], [`StrokeStyle`], [`LineCap`], [`LineJoin`] |
 | glyphs | [`rasterize_glyph`], [`rasterize_outline`], [`glyph_path`], [`Hinting`], [`GlyphBitmap`] |
 | text | [`shape_line`], [`measure_run`], [`measure_glyph`], [`resolve_bidi`], [`LayoutDirection`] |
@@ -47,13 +47,13 @@ and both are asserted in the test suite:
   `128`.
 - **A mask's coverage sums to the polygon's area.** A 64-unit right triangle's
   ink matches `½·64·64` to within 0.1 %, and a 40-unit circle's matches `π·1600`
-  to within 1 % — the residual being curve flattening, not the integration. That
+  to within 1 %: the residual being curve flattening, not the integration. That
   one number bounds every antialiasing claim this crate makes.
 
 Device space is **y down**; pixel `(x, y)` covers `[x, x+1) × [y, y+1)`.
 [`rasterize_glyph`] flips a font's y-up outline into that space and carries all
-intermediate arithmetic in **26.6 fixed point** — 26 integer bits, 6 fractional,
-one pixel exactly `64` — so a glyph lands on the same pixel grid at 12 px and at
+intermediate arithmetic in **26.6 fixed point**: 26 integer bits, 6 fractional,
+one pixel exactly `64`: so a glyph lands on the same pixel grid at 12 px and at
 144 px.
 
 Stroking is expansion, not a distance function: a quad per segment, a wedge or a
@@ -100,7 +100,7 @@ assert!((line.advance_px() - 10.0).abs() < 1e-4);
   `tests/properties.rs` over 300 generated polygons rather than one rectangle.
 - **Totality under untrusted geometry.** A path can carry NaN coordinates, a
   million-point subpath, or a transform that collapses the plane. Every public
-  entry point returns a value or a typed [`ShapeError`] — never a panic, never
+  entry point returns a value or a typed [`ShapeError`]: never a panic, never
   an out-of-bounds write, never an unbounded allocation. The crate denies
   `clippy::unwrap_used`/`expect_used`/`panic`/`indexing_slicing` and
   `#![forbid(unsafe_code)]`, and the `font_shape_fuzz` target drives arbitrary
@@ -112,7 +112,7 @@ assert!((line.advance_px() - 10.0).abs() < 1e-4);
 - **Bidirectional reordering is a real UAX #9 subset.** Rules P2/P3, W1–W7,
   N1/N2, I1/I2, L1 and L2 are implemented, with `bidi_class` covering the
   strong, numeric, mark, and neutral classes. Kerning is applied in **logical**
-  order — a kern pair is defined by reading order, not paint order — and
+  order: a kern pair is defined by reading order, not paint order: and
   reordering never changes a line's total advance.
 - **Curves are kept as curves.** `Path2D` holds quadratic and cubic segments
   until rasterisation, where the pixel grid makes the right tolerance known.
@@ -134,15 +134,15 @@ crate itself needs no compressor).
 
 ## Not in scope
 
-Glyph-instruction (hinting bytecode) interpretation — [`Hinting::GridFit`] is a
-coarse integer-grid fit, not TrueType's interpreter — variable-font axis
+Glyph-instruction (hinting bytecode) interpretation: [`Hinting::GridFit`] is a
+coarse integer-grid fit, not TrueType's interpreter: variable-font axis
 application, colour glyph rendering, subpixel positioning, text justification
 and line breaking, and OpenType `GSUB`/`GPOS` substitution, which ride through
 [`font-model`] opaquely.
 
 ## Layer
 
-L2 — domain. Its only estate-internal dependency is `font-model` (L1), which
+L2: domain. Its only estate-internal dependency is `font-model` (L1), which
 sits on `font-parse` (L0), so the chain is legal.
 
 [`font-model`]: https://docs.rs/font-model
