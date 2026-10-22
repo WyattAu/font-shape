@@ -27,8 +27,8 @@ fn hostile_extent_triangle_fills() {
         fill_path(&path, FillRule::NonZero, 8, 8).expect("hostile extent fills, never hangs");
     assert_eq!(mask.len(), 64);
     assert!(
-        mask.iter().all(|&v| v <= 255),
-        "coverage stays a u8 coverage value"
+        mask.iter().all(|&v| v == 0 || v == 255),
+        "the saturated band clamps to a binary coverage value"
     );
 }
 
