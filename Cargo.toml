@@ -1,13 +1,13 @@
 [package]
 name = "font-shape"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.85"
 authors = ["Wyatt Au <wyatt_au@protonmail.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/WyattAu/font-shape"
 documentation = "https://docs.rs/font-shape"
-description = "Glyph rasterization and text measurement: exact-coverage scanline fill, stroke expansion, advance/kerning layout, and bidirectional reordering"
+description = "Glyph rasterization and text measurement: scanline fill, stroke expansion,"
 readme = "README.md"
 keywords = ["font", "rasterizer", "typography", "text-layout", "no-std"]
 categories = ["graphics", "no-std", "text-processing"]
